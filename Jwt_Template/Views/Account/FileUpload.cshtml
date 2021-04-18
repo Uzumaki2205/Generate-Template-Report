@@ -2,6 +2,8 @@
     ViewBag.Title = "File Upload & File Download";
 }
 
+@Html.Raw(TempData["msg"])
+
 @using (Html.BeginForm("FileUpload", "Account", FormMethod.Post, new { enctype = "multipart/form-data" }))
 {
     @Html.AntiForgeryToken()
@@ -39,9 +41,9 @@
             grid.Column("FileName", header: "FILE NAME", canSort: false),
             grid.Column("FileUrl", header: "FILE PATH", canSort: false),
             grid.Column(header: "DOWNLOAD", format:
-                                @<text>
-                                    <a href="~/Files/DownloadFile?filePath=@item.FileUrl"><img src="~/Images/download.png" style="width: 15px; height: 15px" title="Download" /></a>
-                                </text>)
+                                    @<text>
+                                        <a href="~/Account/DownloadFile?filePath=@item.FileUrl"><img src="~/Images/download.png" style="width: 15px; height: 15px" title="Download" /></a>
+                                    </text>)
 ));
 }
 

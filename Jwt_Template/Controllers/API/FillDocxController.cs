@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Web;
 using System.Web.Http;
 
 namespace Jwt_Template.Controllers.API
@@ -15,7 +16,6 @@ namespace Jwt_Template.Controllers.API
         private string CurrentDirectory = $"{AppDomain.CurrentDomain.BaseDirectory}";
 
         [HttpGet]
-        [Route("api/filldocx/isExist")]
         public string IsExistPath(string path)
         {
             if (File.Exists(path))
@@ -24,27 +24,29 @@ namespace Jwt_Template.Controllers.API
         }
 
         [HttpGet]
-        [Route("api/Download/isExist")]
         public HttpResponseMessage IsExistFile(string fileName)
         {
-            var result = new HttpResponseMessage(HttpStatusCode.Found);
             var filepath = $"{CurrentDirectory}Renders/{fileName}";
 
             if (File.Exists(filepath))
             {
-                result.Headers.Location = new Uri($"/api/Download/start?fileName={fileName}", UriKind.Relative);
-                return result;
+                return new HttpResponseMessage(HttpStatusCode.OK);
             }
             else return new HttpResponseMessage(HttpStatusCode.NotFound);
         }
 
-        // POST api/filldocx
-        [HttpPost]
-        [Route("api/FillDocx")]
+        [HttpGet]
         public HttpResponseMessage Fill(string nameTemplate, string jsonPath)
         {
-            InfoVuln.GetInstance().ProcessDocx(nameTemplate, jsonPath);
-            return IsExistFile($"{InfoVuln.GetInstance().TimeStamp}.Report.docx");
+            try
+            {
+                InfoVuln.GetInstance().ProcessDocx(nameTemplate, jsonPath);
+                return IsExistFile($"{InfoVuln.GetInstance().TimeStamp}.Report.docx");
+            }
+            catch (Exception)
+            {
+                return new HttpResponseMessage(HttpStatusCode.BadRequest);
+            }
         }
     }
 }

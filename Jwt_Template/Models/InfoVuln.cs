@@ -254,7 +254,7 @@ namespace Jwt_Template.Models
                 Directory.CreateDirectory($"{rootPath}/Renders");
             //if (!Directory.Exists($"{rootPath}/Static"))
             //    Directory.CreateDirectory($"{rootPath}/Static");
-            if (!Directory.Exists($"{rootPath}/Static"))
+            if (!Directory.Exists($"{rootPath}/Static/{TimeStamp}"))
                 Directory.CreateDirectory($"{rootPath}/Static/{TimeStamp}");
         }
         //Delete Folder Image temp after insert into word

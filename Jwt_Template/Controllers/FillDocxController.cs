@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
@@ -29,7 +30,7 @@ namespace Jwt_Template.Controllers
         }
 
         [HttpPost]
-        public ActionResult Generate(string nameTemplate, HttpPostedFileBase jsonPath)
+        public async Task<ActionResult> Generate(string nameTemplate, HttpPostedFileBase jsonPath)
         {
             string ext = Path.GetExtension(jsonPath.FileName);
             if (ext == ".json")
@@ -45,54 +46,42 @@ namespace Jwt_Template.Controllers
 
                     jsonPath.SaveAs(path);
 
-                    ////////////////////////////////EDIT PATH TO PROCESS JSON -> UploadedFile/Json/{timestamp}/*.json
-                    InfoVuln.GetInstance().ProcessDocx(nameTemplate, path);
+                    ////------------------------------------Process Docx
+                    //InfoVuln.GetInstance().ProcessDocx(nameTemplate, path);
 
-                    TempData["msg"] = "<script>alert('Upload success');</script>";
-                    return RedirectToAction("Index");
+                    using (var httpClient = new HttpClient())
+                    {
+                        string baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority +
+                                Request.ApplicationPath.TrimEnd('/') + "/";
+                        httpClient.BaseAddress = new Uri(baseUrl);
+                        httpClient.DefaultRequestHeaders.Add("Accept", "application/x-www-form-urlencoded");
+
+                        //var parameters = new Dictionary<string, string> { { "nameTemplate", nameTemplate }, { "jsonPath", path } };
+                        //var encodedContent = new FormUrlEncodedContent(parameters);
+
+
+                        ////////////////////RESQUEST NOT POST TO API --------------FAIL
+                        HttpResponseMessage response = 
+                            await httpClient.GetAsync($"api/FillDocx/Fill?nameTemplate={nameTemplate}&jsonPath={path}");
+
+                        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                        {
+                            return RedirectToAction("Download", new { fileName = InfoVuln.GetInstance().TimeStamp + ".Report.docx" });
+                        }
+                    }
                 }
                 catch (Exception)
                 {
                     ViewBag.Message = "Template not exist or file error";
                 }
             }
-            else TempData["msg"] = "<script>alert('file is not correct format');</script>";
 
-            TempData["msg"] = "<script>alert('Upload not success');</script>";
+            TempData["msg"] = "<script>alert('Upload file error or Not exist template!!!');</script>";
             return RedirectToAction("Index");
         }
 
-        [HttpPost]
-        public ActionResult JsonUpload(HttpPostedFileBase files)
-        {
-            string ext = Path.GetExtension(files.FileName);
-            if (ext == ".json")
-            {
-                try
-                {
-                    var timeStamp = InfoVuln.GetInstance().TimeStamp;
-                    if (!Directory.Exists(Server.MapPath($"~/UploadedFiles/{timeStamp}")))
-                        Directory.CreateDirectory(Server.MapPath($"~/UploadedFiles/{timeStamp}"));
-
-                    string path = Path.Combine(Server.MapPath($"~/UploadedFiles/{timeStamp}"), files.FileName);
-                    var fileUrl = Url.Content(Path.Combine($"~/UploadedFiles/{timeStamp}/", files.FileName));
-
-                    files.SaveAs(path);
-
-                    return Content("<script>alert('Success')</script>");
-                }
-                catch (Exception)
-                {
-                    return RedirectToAction("JsonUpload");
-                }
-            }
-
-            return RedirectToAction("JsonUpload");
-        }
-
         [HttpGet]
-        [Route("api/Download/start")]
-        public async Task<ActionResult> DownloadFile(string fileName)
+        public async Task<ActionResult> Download(string fileName)
         {
             var filepath = $"{CurrentDirectory}Renders/{fileName}";
 
