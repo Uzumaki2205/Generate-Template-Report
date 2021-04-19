@@ -181,6 +181,7 @@
     <Compile Include="Controllers\API\AccountAPIController.cs" />
     <Compile Include="Controllers\API\FilesController.cs" />
     <Compile Include="Controllers\API\FillDocxController.cs" />
+    <Compile Include="Controllers\API\TokenController.cs" />
     <Compile Include="Controllers\FillDocxController.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Filters\AddChallengeOnUnauthorizedResult.cs" />
@@ -192,6 +193,7 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\InfoVuln.cs" />
+    <Compile Include="Models\RequestHelper.cs" />
     <Compile Include="Models\tblFileDetails.cs">
       <DependentUpon>UserModel.tt</DependentUpon>
     </Compile>

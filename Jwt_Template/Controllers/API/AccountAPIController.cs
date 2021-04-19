@@ -1,11 +1,7 @@
 ﻿using Jwt_Template.Filters;
 using Jwt_Template.Models;
 using Jwt_Template.Repositories;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Web.Http;
 
 namespace Jwt_Template.Controllers.API

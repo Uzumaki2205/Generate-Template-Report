@@ -27,24 +27,26 @@ namespace Jwt_Template.Controllers
         [HttpPost]
         public async Task<ActionResult> Login(string username, string password)
         {
-            using (var httpClient = new HttpClient())
+            string baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority + 
+                Request.ApplicationPath.TrimEnd('/') + "/";
+
+            var parameters = new Dictionary<string, string> { { "username", username }, { "password", password } };
+            var encodedContent = new FormUrlEncodedContent(parameters);
+            HttpResponseMessage response = await RequestHelper.PostRequest(baseUrl, "api/AccountAPI/Login", encodedContent);
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
-                string baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority +
-                        Request.ApplicationPath.TrimEnd('/') + "/";
-                httpClient.BaseAddress = new Uri(baseUrl);
-                httpClient.DefaultRequestHeaders.Add("Accept", "application/x-www-form-urlencoded");
-
-                var parameters = new Dictionary<string, string> { { "username", username }, { "password", password } };
-                var encodedContent = new FormUrlEncodedContent(parameters);
-
-                HttpResponseMessage response = await httpClient.PostAsync("api/AccountAPI/Login", encodedContent);
-                if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                Session["UserName"] = username;
+                using (HttpResponseMessage res = await RequestHelper.GetRequest(RequestHelper.baseURL,
+                    "api/Token/GenerateToken?user=" + Session["UserName"]))
                 {
-                    Session["Username"] = username;
-                    //string jwtToken = JwtManager.GenerateToken(username);
-
-                    return RedirectToAction("Dashboard");
+                    if (res.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        var token = await res.Content.ReadAsStringAsync();
+                        Session["Token"] = token.Replace("\"", "").Replace("\\", "");
+                    }
                 }
+
+                return RedirectToAction("Dashboard");
             }
 
             return View();
@@ -59,29 +61,16 @@ namespace Jwt_Template.Controllers
 
         public async Task<ActionResult> Dashboard()
         {
-            string token = null;
-            try
-            {
-                token = JwtManager.GenerateToken(Session["UserName"].ToString());
-                Session["Token"] = token;
-            }
-            catch (Exception)
-            {
-                RedirectToAction("Login");
-            }
+            //string baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority +
+            //    Request.ApplicationPath.TrimEnd('/') + "/";
 
-            using (var httpClient = new HttpClient())
-            {
-                string baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority +
-                        Request.ApplicationPath.TrimEnd('/') + "/";
-                httpClient.BaseAddress = new Uri(baseUrl);
-                httpClient.DefaultRequestHeaders.Add("Accept", "application/x-www-form-urlencoded");
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            if (Session["UserName"] == null || Session["Token"] == null)
+                return RedirectToAction("Login");
 
-                HttpResponseMessage response = await httpClient.GetAsync($"api/AccountAPI/Dashboard");
-                if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                    return View();
-            }
+            HttpResponseMessage response = 
+                await RequestHelper.GetRequestWithToken("/api/Account/Dashboard", Session["Token"].ToString());
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                return View();
 
             return RedirectToAction("Login");
         }
@@ -100,7 +89,7 @@ namespace Jwt_Template.Controllers
                         string baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority +
                                 Request.ApplicationPath.TrimEnd('/') + "/";
                         httpClient.BaseAddress = new Uri(baseUrl);
-                        httpClient.DefaultRequestHeaders.Add("Accept", "application/x-www-form-urlencoded");
+                        //httpClient.DefaultRequestHeaders.Add("Accept", "application/x-www-form-urlencoded");
                         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
                         HttpResponseMessage response = await httpClient.GetAsync($"api/Files/FileUpload");
