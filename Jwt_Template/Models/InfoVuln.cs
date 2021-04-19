@@ -96,7 +96,12 @@ namespace Jwt_Template.Models
                         {
                             if (item.Type == JTokenType.String)
                             {
-                                obj_Property.Add(property.Name, property.Value.ToString());
+                                if (property.Name.StartsWith("image-"))
+                                {
+                                    string valueImage = ProcessImage(property);
+                                    obj_Property.Add(property.Name, valueImage + ".jpg");
+                                }
+                                else obj_Property.Add(property.Name, property.Value.ToString());
                             }
                             else if (item.Type == JTokenType.Object)
                             {

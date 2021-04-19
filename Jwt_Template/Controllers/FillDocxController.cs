@@ -48,6 +48,12 @@ namespace Jwt_Template.Controllers
                 if (response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
                     string filename = await response.Content.ReadAsStringAsync();
+                    if(filename == "null")
+                    {
+                        TempData["msg"] = "<script>alert('Json format or template format error, please reformat your file again!!!');</script>";
+                        return RedirectToAction("Index");
+                    }
+                        
                     filename = filename.Replace("\\","").Replace("\"","");
                     return RedirectToAction("Download", new { fileName = filename });
                 }     
