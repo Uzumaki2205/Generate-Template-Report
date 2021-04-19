@@ -22,6 +22,7 @@
                 <ul class="nav navbar-nav">
                     <li>@Html.ActionLink("Home", "Index", "Home", new { area = "" }, null)</li>
                     <li>@Html.ActionLink("Upload File", "FileUpload", "Account", new { area = "" }, null)</li>
+                    <li>@Html.ActionLink("Generate Template", "Index", "FillDocx", new { area = "" }, null)</li>
                     <li>@Html.ActionLink("API", "Index", "Help", new { area = "" }, null)</li>
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
@@ -33,8 +34,9 @@
                                 @Session["UserName"].ToString() <span class="caret"></span>
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a href="#">Template</a></li>
-                                <li><a href="#">Generate</a></li>
+                                <li>
+                                <li>@Html.ActionLink("Upload", "FileUpload", "Account")</li>
+                                <li>@Html.ActionLink("Generate Template", "Index", "FillDocx")</li>
                                 <li role="separator" class="divider"></li>
                                 <li>@Html.ActionLink("Logout", "LogOut", "Account")</li>
                             </ul>

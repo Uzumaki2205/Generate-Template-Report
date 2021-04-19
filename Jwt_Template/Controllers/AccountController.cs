@@ -27,12 +27,10 @@ namespace Jwt_Template.Controllers
         [HttpPost]
         public async Task<ActionResult> Login(string username, string password)
         {
-            string baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority + 
-                Request.ApplicationPath.TrimEnd('/') + "/";
-
             var parameters = new Dictionary<string, string> { { "username", username }, { "password", password } };
             var encodedContent = new FormUrlEncodedContent(parameters);
-            HttpResponseMessage response = await RequestHelper.PostRequest(baseUrl, "api/AccountAPI/Login", encodedContent);
+
+            HttpResponseMessage response = await RequestHelper.PostRequest("api/AccountAPI/Login", encodedContent);
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 Session["UserName"] = username;
@@ -61,9 +59,6 @@ namespace Jwt_Template.Controllers
 
         public async Task<ActionResult> Dashboard()
         {
-            //string baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority +
-            //    Request.ApplicationPath.TrimEnd('/') + "/";
-
             if (Session["UserName"] == null || Session["Token"] == null)
                 return RedirectToAction("Login");
 
@@ -75,44 +70,39 @@ namespace Jwt_Template.Controllers
             return RedirectToAction("Login");
         }
 
-        public async Task<ActionResult> FileUpload(FileUploadRepo model)
+        public async Task<ActionResult> FileUpload(tblFileDetails model)
         {
-            if (Session["Token"] != null && Session["UserName"] != null)
+            if (Session["Token"] == null || Session["UserName"] == null) 
             {
-                string token = null;
-                try
-                {
-                    token = Session["Token"].ToString();
-
-                    using (var httpClient = new HttpClient())
-                    {
-                        string baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority +
-                                Request.ApplicationPath.TrimEnd('/') + "/";
-                        httpClient.BaseAddress = new Uri(baseUrl);
-                        //httpClient.DefaultRequestHeaders.Add("Accept", "application/x-www-form-urlencoded");
-                        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-                        HttpResponseMessage response = await httpClient.GetAsync($"api/Files/FileUpload");
-                        if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                        {
-                            var list = new FileUploadRepo();
-                            if (list != null)
-                            {
-                                model.FileList = list.FileList;
-                                return View(model);
-                            }
-                            else return View();
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    Session.RemoveAll();
-                    return RedirectToAction("Login", "Account");
-                }
+                Session.RemoveAll();
+                return RedirectToAction("Login", "Account");
             }
             
-            Session.RemoveAll();
+            string token = Session["Token"].ToString();
+
+            HttpResponseMessage response = await RequestHelper.GetRequestWithToken("api/Files/FileUpload", token);
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                //var list = new FileUploadRepo();
+                //if (list != null)
+                //{
+                //    model.FileList = list.FileList;
+                //    return View(model);
+                //}
+                //else return View();
+
+                using (DB_Entities context = new DB_Entities())
+                {
+                    var allFiles = (from r in context.tblFileDetails select r).ToList();
+                    if (allFiles != null)
+                    {
+                        model.FileList = allFiles;
+                        return View(model);
+                    }
+                }
+                return View();
+            }
+
             return RedirectToAction("Login", "Account");
         }
 
@@ -157,11 +147,29 @@ namespace Jwt_Template.Controllers
                 }
                 catch (Exception)
                 {
+                    TempData["msg"] = "<script>alert('Upload file error!!!');</script>";
                     ModelState.AddModelError("", "Error In Add File. Please Try Again !!!");
                 }
             }
-            
+
             return RedirectToAction("FileUpload", "Account");
+        }
+
+        public ActionResult DeleteFile(string fileName)
+        {
+            var entites = new DB_Entities();
+            var itemToRemove = entites.tblFileDetails.SingleOrDefault(x => x.FileName == fileName); //returns a single item.
+
+            if (itemToRemove != null)
+            {
+                entites.tblFileDetails.Remove(itemToRemove);
+                entites.SaveChanges();
+
+                if (System.IO.File.Exists(Server.MapPath($"~/Template/{fileName}")))
+                    System.IO.File.Delete(Server.MapPath($"~/Template/{fileName}"));
+            }
+
+            return RedirectToAction("FileUpload");
         }
 
         public ActionResult DownloadFile(string filePath)

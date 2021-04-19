@@ -1,5 +1,4 @@
 ﻿using Jwt_Template.Models;
-using Jwt_Template.Repositories;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -30,50 +29,28 @@ namespace Jwt_Template.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> Generate(string nameTemplate, HttpPostedFileBase jsonPath)
+        public async Task<ActionResult> Generate(string nameTemplate, HttpPostedFileBase jsonName)
         {
-            string ext = Path.GetExtension(jsonPath.FileName);
+            string ext = Path.GetExtension(jsonName.FileName);
             if (ext == ".json")
             {
-                try
+                var timeStamp = InfoVuln.GetInstance().TimeStamp;
+                if (!Directory.Exists(Server.MapPath($"~/UploadedFiles/Json/{timeStamp}")))
+                    Directory.CreateDirectory(Server.MapPath($"~/UploadedFiles/Json/{timeStamp}"));
+
+                string path = Path.Combine(Server.MapPath($"~/UploadedFiles/Json/{timeStamp}"), jsonName.FileName);
+
+                jsonName.SaveAs(path);
+
+                HttpResponseMessage response =
+                    await RequestHelper.GetRequest($"api/FillDocx/Fill?nameTemplate={nameTemplate}&jsonPath={path}");
+
+                if (response.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    var timeStamp = InfoVuln.GetInstance().TimeStamp;
-                    if (!Directory.Exists(Server.MapPath($"~/UploadedFiles/Json/{timeStamp}")))
-                        Directory.CreateDirectory(Server.MapPath($"~/UploadedFiles/Json/{timeStamp}"));
-
-                    string path = Path.Combine(Server.MapPath($"~/UploadedFiles/Json/{timeStamp}"), jsonPath.FileName);
-                    var fileUrl = Url.Content(Path.Combine($"~/UploadedFiles/Json/{timeStamp}/", jsonPath.FileName));
-
-                    jsonPath.SaveAs(path);
-
-                    ////------------------------------------Process Docx
-                    //InfoVuln.GetInstance().ProcessDocx(nameTemplate, path);
-
-                    using (var httpClient = new HttpClient())
-                    {
-                        string baseUrl = Request.Url.Scheme + "://" + Request.Url.Authority +
-                                Request.ApplicationPath.TrimEnd('/') + "/";
-                        httpClient.BaseAddress = new Uri(baseUrl);
-                        httpClient.DefaultRequestHeaders.Add("Accept", "application/x-www-form-urlencoded");
-
-                        //var parameters = new Dictionary<string, string> { { "nameTemplate", nameTemplate }, { "jsonPath", path } };
-                        //var encodedContent = new FormUrlEncodedContent(parameters);
-
-
-                        ////////////////////RESQUEST NOT POST TO API --------------FAIL
-                        HttpResponseMessage response = 
-                            await httpClient.GetAsync($"api/FillDocx/Fill?nameTemplate={nameTemplate}&jsonPath={path}");
-
-                        if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                        {
-                            return RedirectToAction("Download", new { fileName = InfoVuln.GetInstance().TimeStamp + ".Report.docx" });
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    ViewBag.Message = "Template not exist or file error";
-                }
+                    string filename = await response.Content.ReadAsStringAsync();
+                    filename = filename.Replace("\\","").Replace("\"","");
+                    return RedirectToAction("Download", new { fileName = filename });
+                }     
             }
 
             TempData["msg"] = "<script>alert('Upload file error or Not exist template!!!');</script>";

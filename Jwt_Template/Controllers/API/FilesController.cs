@@ -1,7 +1,4 @@
 ﻿using Jwt_Template.Filters;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
@@ -12,9 +9,9 @@ namespace Jwt_Template.Controllers.API
     {
         [JwtAuthentication]
         [HttpGet] 
-        public IHttpActionResult FileUpload()
+        public HttpResponseMessage FileUpload()
         {
-            return Ok();
+            return Request.CreateResponse(HttpStatusCode.OK);
         }
     }
 }
